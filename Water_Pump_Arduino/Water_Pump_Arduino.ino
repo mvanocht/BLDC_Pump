@@ -1,5 +1,5 @@
-// VERSION 1.0.0
-// Initial release
+// VERSION 1.1.0.0
+// Update to detect of Temp sensor is not connected (if temp < 0C), then just send 0C to GUI
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -92,7 +92,7 @@ void loop() {
   attachInterrupt(digitalPinToInterrupt(soutPin), countSOUTPulse, RISING);
   // Start a 1-second timer
   unsigned long startTime = millis();
-  while (millis() - startTime < 500) {
+  while (millis() - startTime < 1000) {
     // Wait for 1 second (or use millis() for non-blocking timing)
   }
   // Disable interrupts
@@ -103,8 +103,16 @@ void loop() {
 
   sensor_in.requestTemperatures();
   float tempC1 = sensor_in.getTempCByIndex(0); // Inlet Temp in Celcius
+  if (tempC1 < 0)
+  {
+    tempC1 = 0;
+  }
   sensor_out.requestTemperatures();
   float tempC2 = sensor_out.getTempCByIndex(0); // Outlet Temp in Ceclius
+  if (tempC2 < 0)
+  {
+    tempC2 = 0;
+  }
   //int tempC1out = tempC1;
   //int tempC2out = tempC2;
   //Serial.println("T");
@@ -113,7 +121,7 @@ void loop() {
  ///////////// Send Serial message out for GUI to decode //////////////////
 
   //Compose serial message to send out (GUI will decode this later on)
-  String message = String(flowCount*2) + "A" + String(tempC1) + "B" + String(tempC2) + "C" + String(soutCount*2) + "D" + "\n";
+  String message = String(flowCount*1) + "A" + String(tempC1) + "B" + String(tempC2) + "C" + String(soutCount*1) + "D" + "\n";
   Serial.print(message);
 
   //reset the counters for flow meter and Sout
