@@ -1,5 +1,6 @@
-// VERSION 1.1.0.0
-// Update to detect of Temp sensor is not connected (if temp < 0C), then just send 0C to GUI
+// VERSION 2.0.0.0
+// Include error detection if temp sensor not connected
+// Added SOUT error and send error message to GUI
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -20,6 +21,8 @@ int PWMpin = 10;  // Arduino pin 10 used for PWM out
 const int flowPin = 2; // Arduino pin 2 used for sensing Flow Meter
 String pulseCountString;
 const int soutPin = 3; // Arduino pin 3 used for sensing EVK SOUT
+unsigned long highTime, lowTime, cycleTime;
+float soutDuty;
 
 // Define a volatile variable for the pulse counter (volatile because it's updated by an interrupt)
 volatile unsigned int flowCount = 0;
@@ -98,6 +101,38 @@ void loop() {
   // Disable interrupts
   detachInterrupt(digitalPinToInterrupt(flowPin));
   detachInterrupt(digitalPinToInterrupt(soutPin));
+
+  //Serial.println(flowCount);
+  //Serial.println(soutCount);
+
+  // measuring the duty cycle of SOUT
+  if(soutCount != 0)
+  {
+    highTime = pulseIn(soutPin, HIGH);
+    lowTime = pulseIn(soutPin, LOW);
+
+    if (highTime != 0 && lowTime != 0)
+    {
+      cycleTime = highTime + lowTime;
+      soutDuty = (float)highTime / (float)cycleTime;
+      //Serial.print("Duty Cycle: ");
+      //Serial.println(soutDuty);
+    }
+    else
+    {
+      soutDuty = 0;
+      //Serial.println("Invalid pulse durations detected.");
+    }
+
+    // If the Sout frequency drops below 10Hz, then use the soutCount to send a number between 1-9 to GUI to indicate type of DIAG error (page 46 datasheet)
+    if(soutCount < 10)
+    {
+      soutDuty = soutDuty * 10;
+      soutCount = round(soutDuty);
+      //Serial.println(soutDuty);
+      //Serial.println(soutCount);
+    }
+  }
 
   ///////////// DS18D20 2x TEMP SENSOR //////////////////
 
