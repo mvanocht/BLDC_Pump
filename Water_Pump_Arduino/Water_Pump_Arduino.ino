@@ -1,6 +1,5 @@
-// VERSION 2.0.0.0
-// Include error detection if temp sensor not connected
-// Added SOUT error and send error message to GUI
+// VERSION 2.1.0.0
+// Limit all the sensing numbers to be within the GUI progressbar to avoid any error
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -105,6 +104,16 @@ void loop() {
   //Serial.println(flowCount);
   //Serial.println(soutCount);
 
+  // Limit the flowCount to avoid error for GUI progressbar
+  if (flowCount < 0)
+  {
+    flowCount = 0;
+  }
+  else if (flowCount > 100)
+  {
+    flowCount = 100;
+  }
+
   // measuring the duty cycle of SOUT
   if(soutCount != 0)
   {
@@ -132,21 +141,36 @@ void loop() {
       //Serial.println(soutDuty);
       //Serial.println(soutCount);
     }
+    //limit the upper of soutCount to be within the GUI progressbar
+    else if(soutCount > 15000)
+    {
+      soutCount = 15000;
+    }
   }
 
   ///////////// DS18D20 2x TEMP SENSOR //////////////////
 
   sensor_in.requestTemperatures();
   float tempC1 = sensor_in.getTempCByIndex(0); // Inlet Temp in Celcius
+  // Limit the tempC1 to avoid error for GUI progressbar
   if (tempC1 < 0)
   {
     tempC1 = 0;
   }
+  else if (tempC1 > 200)
+  {
+    tempC1 = 200;
+  }
   sensor_out.requestTemperatures();
   float tempC2 = sensor_out.getTempCByIndex(0); // Outlet Temp in Ceclius
+  // Limit the tempC2 to avoid error for GUI progressbar
   if (tempC2 < 0)
   {
     tempC2 = 0;
+  }
+  else if (tempC2 > 200)
+  {
+    tempC2 = 200;
   }
   //int tempC1out = tempC1;
   //int tempC2out = tempC2;
