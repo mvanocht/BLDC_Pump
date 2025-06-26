@@ -43,7 +43,7 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);   // start Serial Port with Baud Rate 9600
 
-  //pinMode(13,OUTPUT);   // LED on pin 13
+  pinMode(13,OUTPUT);   // LED on pin 13
 
   pinMode(flowPin, INPUT);    // Flow meter attach to pin 2
   pinMode(soutPin, INPUT);      //BD16851 SOUT attach to pin 3
@@ -62,14 +62,14 @@ void loop() {
     dl = data.charAt(0);
     switch(dl){
       case 'O': {
-        //digitalWrite(13,HIGH); //Turn on LED at pin 13 (used when COM is connected in GUI)
+        digitalWrite(13,HIGH); //Turn on LED at pin 13 (used when COM is connected in GUI)
         int pwmduty = 0;
         analogWrite(PWMpin,pwmduty); // Set PWM to be 0 upon opening the COM
       }
       break;
 
       case 'X': {
-        //digitalWrite(13,LOW); //Turn off LED at pin 13 (used when COM is disconnected in GUI
+        digitalWrite(13,LOW); //Turn off LED at pin 13 (used when COM is disconnected in GUI
         int pwmduty = 0;
         analogWrite(PWMpin,pwmduty); // Set PWM to be 0 upon closing the COM
       }
