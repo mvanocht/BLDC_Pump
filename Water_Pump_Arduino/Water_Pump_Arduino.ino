@@ -1,5 +1,5 @@
-// VERSION 2.1.0.0
-// Limit all the sensing numbers to be within the GUI progressbar to avoid any error
+// VERSION 2.2.0.0
+// Add some debounce to flowRate to filter out any asynchornous counts small changes
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -24,8 +24,10 @@ unsigned long highTime, lowTime, cycleTime;
 float soutDuty;
 
 // Define a volatile variable for the pulse counter (volatile because it's updated by an interrupt)
-volatile unsigned int flowCount = 0;
-volatile unsigned int soutCount = 0;
+volatile int flowCount = 0;
+volatile int flowCountOld = 0;
+volatile int flowCountCount = 0;
+volatile int soutCount = 0;
 
 //int tempC1out = 0;
 //int tempC2out = 0;
@@ -103,6 +105,27 @@ void loop() {
 
   //Serial.println(flowCount);
   //Serial.println(soutCount);
+
+  //check if new flowCount increased by less than 3, then must wait 3x before updating flowCount
+  if(((abs(flowCount-flowCountOld)) < 3) && !((flowCount-flowCountOld)==0))
+  {
+    if(flowCountCount < 3) //Change is less than 3, then need to count up to 3x before making sure the change is real
+    {
+      flowCount = flowCountOld;
+      flowCountCount++;
+    }
+    else // counter is done, so now time to update flowCount
+    {
+      flowCountCount = 0;
+      flowCountOld = flowCount;
+    }
+    
+  }
+  else //the change is bigger than or equal to 3, or there was no change at all
+  {
+    flowCountOld = flowCount;
+    flowCountCount = 0;
+  }
 
   // Limit the flowCount to avoid error for GUI progressbar
   if (flowCount < 0)
