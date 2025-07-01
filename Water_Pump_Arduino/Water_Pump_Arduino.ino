@@ -16,7 +16,7 @@ String data;
 char dl;
 String dutystring;
 int pwmduty = 0;  // Initial Duty Cycle
-int PWMpin = 10;  // Arduino pin 10 used for PWM out
+const int PWMpin = 10;  // Arduino pin 10 used for PWM out
 const int flowPin = 2; // Arduino pin 2 used for sensing Flow Meter
 String pulseCountString;
 const int soutPin = 3; // Arduino pin 3 used for sensing EVK SOUT
@@ -25,8 +25,8 @@ float soutDuty;
 
 // Define a volatile variable for the pulse counter (volatile because it's updated by an interrupt)
 volatile int flowCount = 0;
-volatile int flowCountOld = 0;
-volatile int flowCountCount = 0;
+int flowCountOld = 0;
+int flowCountCount = 0;
 volatile int soutCount = 0;
 
 //int tempC1out = 0;
