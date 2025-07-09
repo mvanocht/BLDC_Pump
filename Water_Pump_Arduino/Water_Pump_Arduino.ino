@@ -1,5 +1,5 @@
-// VERSION 2.3.0.0
-// Add some debounce to flowRate to filter out any asynchornous counts small changes
+// VERSION 2.3.1.0
+// update max limit for raw flow rate count to 500
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -147,9 +147,9 @@ void loop() {
   {
     flowCount = 0;
   }
-  else if (flowCount > 100)
+  else if (flowCount > 500)
   {
-    flowCount = 100;
+    flowCount = 500;
   }
 
   // measuring the duty cycle of SOUT
