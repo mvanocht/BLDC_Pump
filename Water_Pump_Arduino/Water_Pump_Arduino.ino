@@ -1,5 +1,5 @@
-// VERSION 2.3.1.0
-// update max limit for raw flow rate count to 500
+// VERSION 2.4.0.0
+// change counting period for flow and SOUT to 0.5s
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -97,7 +97,7 @@ void loop() {
   attachInterrupt(digitalPinToInterrupt(soutPin), countSOUTPulse, RISING);
   // Start a 1-second timer
   unsigned long startTime = millis();
-  while (millis() - startTime < 1000) {
+  while (millis() - startTime < 500) {
     // Wait for 1 second (or use millis() for non-blocking timing)
   }
   // Disable interrupts
@@ -218,7 +218,7 @@ void loop() {
  ///////////// Send Serial message out for GUI to decode //////////////////
 
   //Compose serial message to send out (GUI will decode this later on)
-  String message = String(flowCount*1) + "A" + String(tempC1) + "B" + String(tempC2) + "C" + String(soutCount*1) + "D" + "\n";
+  String message = String(flowCount*2) + "A" + String(tempC1,1) + "B" + String(tempC2,1) + "C" + String(soutCount*2) + "D" + "\n";
   Serial.print(message);
 
   //reset the counters for flow meter and Sout
