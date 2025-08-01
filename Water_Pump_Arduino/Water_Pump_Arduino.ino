@@ -1,5 +1,6 @@
-// VERSION 2.4.0.0
-// change counting period for flow and SOUT to 0.5s
+// ROHM SEMICONDUCTOR USA LLC
+// VERSION 2.5.0.0
+// change SOUT < 10 to be SOUT < 7 when we say there is a "DIAG Duty fault"
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -50,6 +51,8 @@ void setup() {
 
   pinMode(flowPin, INPUT);    // Flow meter attach to pin 2
   pinMode(soutPin, INPUT);      //BD16851 SOUT attach to pin 3
+  //pinMode(4,INPUT_PULLUP);
+  //pinMode(5,INPUT_PULLUP);
   
   //temperature sensor
   sensor_in.begin();
@@ -171,8 +174,8 @@ void loop() {
       //Serial.println("Invalid pulse durations detected.");
     }
 
-    // If the Sout frequency drops below 10Hz, then use the soutCount to send a number between 1-9 to GUI to indicate type of DIAG error (page 46 datasheet)
-    if(soutCount < 10)
+    // If the Sout frequency drops below 7Hz, then use the soutCount to send a number between 1-9 to GUI to indicate type of DIAG error (page 46 datasheet)
+    if(soutCount < 7)
     {
       soutDuty = soutDuty * 10;
       soutCount = round(soutDuty);
