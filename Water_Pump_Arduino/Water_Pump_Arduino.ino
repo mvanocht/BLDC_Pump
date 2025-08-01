@@ -1,6 +1,6 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 2.5.0.0
-// change SOUT < 10 to be SOUT < 7 when we say there is a "DIAG Duty fault"
+// VERSION 2.6.0.0
+// fix the bug of forgot to add multiplication factor of "2" in the soutCount section that checks if it is <10Hz (line 178)
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -174,8 +174,8 @@ void loop() {
       //Serial.println("Invalid pulse durations detected.");
     }
 
-    // If the Sout frequency drops below 7Hz, then use the soutCount to send a number between 1-9 to GUI to indicate type of DIAG error (page 46 datasheet)
-    if(soutCount < 7)
+    // If the Sout frequency drops below 10Hz, then use the soutCount to send a number between 1-9 to GUI to indicate type of DIAG error (page 46 datasheet)
+    if((soutCount*2) < 10)
     {
       soutDuty = soutDuty * 10;
       soutCount = round(soutDuty);
