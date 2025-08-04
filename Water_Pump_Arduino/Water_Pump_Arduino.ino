@@ -1,6 +1,6 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 2.6.0.0
-// fix the bug of forgot to add multiplication factor of "2" in the soutCount section that checks if it is <10Hz (line 178)
+// VERSION 3.0.0.0
+// redo the way Sout is reported out when there is an "error" vs. when there is none
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -25,10 +25,13 @@ unsigned long highTime, lowTime, cycleTime;
 float soutDuty;
 
 // Define a volatile variable for the pulse counter (volatile because it's updated by an interrupt)
+int samplingtime = 500;
+int multfactor = 1000/samplingtime;
 volatile int flowCount = 0;
 int flowCountOld = 0;
 int flowCountCount = 0;
 volatile int soutCount = 0;
+int finalSoutCount = 0;
 int flowCountThreshold = 3;
 
 //int tempC1out = 0;
@@ -100,7 +103,7 @@ void loop() {
   attachInterrupt(digitalPinToInterrupt(soutPin), countSOUTPulse, RISING);
   // Start a 1-second timer
   unsigned long startTime = millis();
-  while (millis() - startTime < 500) {
+  while (millis() - startTime < samplingtime) {
     // Wait for 1 second (or use millis() for non-blocking timing)
   }
   // Disable interrupts
@@ -175,17 +178,25 @@ void loop() {
     }
 
     // If the Sout frequency drops below 10Hz, then use the soutCount to send a number between 1-9 to GUI to indicate type of DIAG error (page 46 datasheet)
-    if((soutCount*2) < 10)
+    if((soutCount*multfactor) < 10)
     {
+      //Serial.println("ERROR: ");
+      //Serial.println(soutCount*2);
       soutDuty = soutDuty * 10;
-      soutCount = round(soutDuty);
+      finalSoutCount = round(soutDuty);  // NOTE: Only report out the SoutDuty which is NOT multiplied by the multiplication factor!!!
       //Serial.println(soutDuty);
-      //Serial.println(soutCount);
+      //Serial.println(soutCount*2);
+      //Serial.println(finalSoutCount);
     }
     //limit the upper of soutCount to be within the GUI progressbar
-    else if(soutCount > 15000)
+    else if(soutCount*multfactor > 15000)
     {
-      soutCount = 15000;
+      finalSoutCount = 15000;
+    }
+
+    else
+    {
+      finalSoutCount = soutCount*multfactor;  //in regular cases, multiply with multiplication factor.
     }
   }
 
@@ -221,7 +232,7 @@ void loop() {
  ///////////// Send Serial message out for GUI to decode //////////////////
 
   //Compose serial message to send out (GUI will decode this later on)
-  String message = String(flowCount*2) + "A" + String(tempC1,1) + "B" + String(tempC2,1) + "C" + String(soutCount*2) + "D" + "\n";
+  String message = String(flowCount*multfactor) + "A" + String(tempC1,1) + "B" + String(tempC2,1) + "C" + String(finalSoutCount) + "D" + "\n";
   Serial.print(message);
 
   //reset the counters for flow meter and Sout
