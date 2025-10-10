@@ -1,6 +1,13 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 3.0.0.0
-// redo the way Sout is reported out when there is an "error" vs. when there is none
+// VERSION 4.0.0.0
+// Added LED strip code rotate R, G, B
+
+//FAST LED
+#include <FastLED.h>
+#define NUM_LEDS 144
+#define DATA_PIN 6
+CRGB leds[NUM_LEDS];
+int fastled_cycle = 0;
 
 //DS18B20 Temperature Sensor setup
 #include <OneWire.h>
@@ -60,6 +67,8 @@ void setup() {
   //temperature sensor
   sensor_in.begin();
   sensor_out.begin();
+
+  FastLED.addLeds<WS2815, DATA_PIN, GRB>(leds, NUM_LEDS); 
 
 }
 
@@ -238,5 +247,28 @@ void loop() {
   //reset the counters for flow meter and Sout
   flowCount = 0;
   soutCount = 0;
+
+switch (fastled_cycle){
+  case 0:
+    fill_solid(leds, NUM_LEDS, CRGB::Red); FastLED.setBrightness(128);FastLED.show();
+    break;
+  case 1:
+    fill_solid(leds, NUM_LEDS, CRGB::Green); FastLED.setBrightness(128); FastLED.show();
+    break;
+  case 2:
+    fill_solid(leds, NUM_LEDS, CRGB::Blue); FastLED.setBrightness(128); FastLED.show();
+    break;
+}
+Serial.print("First time");
+Serial.println(fastled_cycle);
+if(fastled_cycle < 2){
+  fastled_cycle++;
+}
+else{
+  fastled_cycle = 0;
+}
+Serial.print("Second time");
+Serial.println(fastled_cycle);
+  
 
 }
