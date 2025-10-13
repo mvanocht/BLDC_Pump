@@ -1,6 +1,6 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 4.0.0.0
-// Added LED strip code rotate R, G, B
+// VERSION 4.1.0.0
+// Added LED strip code rotate R, G, B and make it running
 
 //FAST LED
 #include <FastLED.h>
@@ -248,27 +248,34 @@ void loop() {
   flowCount = 0;
   soutCount = 0;
 
-switch (fastled_cycle){
-  case 0:
-    fill_solid(leds, NUM_LEDS, CRGB::Red); FastLED.setBrightness(128);FastLED.show();
-    break;
-  case 1:
-    fill_solid(leds, NUM_LEDS, CRGB::Green); FastLED.setBrightness(128); FastLED.show();
-    break;
-  case 2:
-    fill_solid(leds, NUM_LEDS, CRGB::Blue); FastLED.setBrightness(128); FastLED.show();
-    break;
-}
-Serial.print("First time");
-Serial.println(fastled_cycle);
+    for (int i = 0; i < NUM_LEDS; i++) {
+      switch (fastled_cycle){
+        case 0:
+        leds[i] = CRGB::Red; // Set the LED to red
+        break;
+      case 1:
+        leds[i] = CRGB::Green; // Set the LED to red
+      break;
+      case 2:
+        leds[i] = CRGB::Blue; // Set the LED to red
+      break;
+      }
+      FastLED.setBrightness(128);
+      FastLED.show();      // Send the data to the strip
+      //leds[i] = CRGB::Black; // Turn the LED off for the next iteration
+      delay(1);           // Wait a short amount of time
+    }
+
+//Serial.print("First time");
+//Serial.println(fastled_cycle);
 if(fastled_cycle < 2){
   fastled_cycle++;
 }
 else{
   fastled_cycle = 0;
 }
-Serial.print("Second time");
-Serial.println(fastled_cycle);
+//Serial.print("Second time");
+//Serial.println(fastled_cycle);
   
 
 }
