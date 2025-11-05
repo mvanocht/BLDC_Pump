@@ -1,6 +1,6 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 4.1.0.0
-// Added LED strip code rotate R, G, B and make it running
+// VERSION 4.2.0.0
+// LED colors vs. OUTLET temp
 
 //FAST LED
 #include <FastLED.h>
@@ -248,32 +248,73 @@ void loop() {
   flowCount = 0;
   soutCount = 0;
 
-    for (int i = 0; i < NUM_LEDS; i++) {
-      switch (fastled_cycle){
-        case 0:
-        leds[i] = CRGB::Red; // Set the LED to red
-        break;
-      case 1:
-        leds[i] = CRGB::Green; // Set the LED to red
+  //LED color vs outlet temp
+  if(tempC2 <= 24){
+    fastled_cycle = 7;
+  }
+  else if(tempC2 > 24 && tempC2 <= 28){
+    fastled_cycle = 6;
+  }
+  else if(tempC2 > 28 && tempC2 <= 32){
+    fastled_cycle = 5;
+  }
+  else if(tempC2 > 32 && tempC2 <= 36){
+    fastled_cycle = 4;
+  }
+  else if(tempC2 > 36 && tempC2 <= 40){
+    fastled_cycle = 3;
+  }
+  else if(tempC2 > 40 && tempC2 <= 44){
+    fastled_cycle = 2;
+  }
+  else if(tempC2 > 44 && tempC2 <= 48){
+    fastled_cycle = 1;
+  }
+  else if(tempC2 > 48){
+    fastled_cycle = 0;
+  }
+
+  for (int i = 0; i < NUM_LEDS; i++) {
+    switch (fastled_cycle){
+      case 0:
+      leds[i] = CRGB(255,0,0); // Set the LED to red
       break;
-      case 2:
-        leds[i] = CRGB::Blue; // Set the LED to red
-      break;
-      }
-      FastLED.setBrightness(128);
-      FastLED.show();      // Send the data to the strip
-      //leds[i] = CRGB::Black; // Turn the LED off for the next iteration
-      delay(1);           // Wait a short amount of time
+    case 1:
+      leds[i] = CRGB(236,88,0); // Set the LED to dark orange
+    break;
+    case 2:
+      leds[i] = CRGB(255, 172, 28); // Set the LED to orange
+    break;
+    case 3:
+      leds[i] = CRGB(255,255,0); // Set the LED to yellow
+    break;
+    case 4:
+      leds[i] = CRGB(0,255,0); // Set the LED to light green
+    break;
+    case 5:
+      leds[i] = CRGB(0,50,0); // Set the LED to green
+    break;
+    case 6:
+      leds[i] = CRGB(0,128,255); // Set the LED to light blue
+    break;
+    case 7:
+      leds[i] = CRGB(0,0,255); // Set the LED to blue
+    break;
     }
+    FastLED.setBrightness(128);
+    FastLED.show();      // Send the data to the strip
+    //leds[i] = CRGB::Black; // Turn the LED off for the next iteration
+    delay(1);           // Wait a short amount of time
+  }
 
 //Serial.print("First time");
 //Serial.println(fastled_cycle);
-if(fastled_cycle < 2){
-  fastled_cycle++;
-}
-else{
-  fastled_cycle = 0;
-}
+// if(fastled_cycle < 7){
+//   fastled_cycle++;
+// }
+// else{
+//   fastled_cycle = 0;
+// }
 //Serial.print("Second time");
 //Serial.println(fastled_cycle);
   
