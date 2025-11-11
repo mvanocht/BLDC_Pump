@@ -1,6 +1,6 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 4.2.0.0
-// LED colors vs. OUTLET temp
+// VERSION 4.3.0.0
+// Add pin 11, 490Hz, 25% duty PWM
 
 //FAST LED
 #include <FastLED.h>
@@ -25,6 +25,7 @@ char dl;
 String dutystring;
 int pwmduty = 0;  // Initial Duty Cycle
 const int PWMpin = 10;  // Arduino pin 10 used for PWM out
+const int PWMfan = 11; // for Fan PWM
 const int flowPin = 2; // Arduino pin 2 used for sensing Flow Meter
 String pulseCountString;
 const int soutPin = 3; // Arduino pin 3 used for sensing EVK SOUT
@@ -68,7 +69,9 @@ void setup() {
   sensor_in.begin();
   sensor_out.begin();
 
-  FastLED.addLeds<WS2815, DATA_PIN, GRB>(leds, NUM_LEDS); 
+  FastLED.addLeds<WS2815, DATA_PIN, GRB>(leds, NUM_LEDS);
+
+  analogWrite(PWMfan,64); // 490Hz, 25% duty PWM
 
 }
 
