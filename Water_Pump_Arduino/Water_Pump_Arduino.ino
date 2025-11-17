@@ -1,6 +1,7 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 4.3.0.0
-// Add pin 11, 490Hz, 25% duty PWM
+// VERSION 4.4.0.0
+// Move Motor PWM to pin 11 and Fan PWM to pin 10
+// And change Timer 1 (which affects both pin 9 and pin 10) to be at 15kHz: pin 10 25%, and pin 9 50% duty
 
 //FAST LED
 #include <FastLED.h>
@@ -24,8 +25,8 @@ String data;
 char dl;
 String dutystring;
 int pwmduty = 0;  // Initial Duty Cycle
-const int PWMpin = 10;  // Arduino pin 10 used for PWM out
-const int PWMfan = 11; // for Fan PWM
+const int PWMpin = 11;  // Arduino pin 10 used for PWM out
+//const int PWMfan = 10; // for Fan PWM
 const int flowPin = 2; // Arduino pin 2 used for sensing Flow Meter
 String pulseCountString;
 const int soutPin = 3; // Arduino pin 3 used for sensing EVK SOUT
@@ -71,7 +72,39 @@ void setup() {
 
   FastLED.addLeds<WS2815, DATA_PIN, GRB>(leds, NUM_LEDS);
 
-  analogWrite(PWMfan,64); // 490Hz, 25% duty PWM
+  // Below code manipulate directly the TImer 1 control registers
+  // for pin 9 and pin 10 to produce 50% and 25% duty at 15kHz
+  // They cannot be changed anymore with analogwrite()
+
+  pinMode(9, OUTPUT);
+  pinMode(10, OUTPUT);
+
+  // 1. Reset Timer 1 Control Registers
+  TCCR1A = 0;
+  TCCR1B = 0;
+  
+  // 2. Set TOP value (ICR1) for 15.625 kHz
+  ICR1 = 1023; 
+
+  // 3. Set Timer 1 Control Register B (TCCR1B)
+  //    - Mode 14: Fast PWM (WGM13, WGM12)
+  //    - Prescaler: Set to 1 (CS10)
+  TCCR1B |= (1 << WGM13) | (1 << WGM12);
+  TCCR1B |= (1 << CS10); // Prescaler = 1 (Full 16 MHz clock speed)
+
+  // 4. Set Timer 1 Control Register A (TCCR1A)
+  //    - Non-inverting Fast PWM on OC1A (Pin 9) and OC1B (Pin 10)
+  TCCR1A |= (1 << COM1A1) | (1 << COM1B1); 
+  TCCR1A |= (1 << WGM11); // Set WGM11 for Mode 14
+
+  // 5. Set Duty Cycles
+  // Pin 9 Duty Cycle (50%): 1023 * 0.5 = 256
+  OCR1A = 512; 
+  
+  // Pin 10 Duty Cycle (25%): 1023 * 0.25 = 128
+  OCR1B = 256; // <-- **This value is changed for 25% duty cycle**
+
+  // analogWrite(PWMfan,64); // 490Hz, 25% duty PWM
 
 }
 
