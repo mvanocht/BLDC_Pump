@@ -1,7 +1,7 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 4.4.0.0
+// VERSION 4.5.0.0
 // Move Motor PWM to pin 11 and Fan PWM to pin 10
-// And change Timer 1 (which affects both pin 9 and pin 10) to be at 15kHz: pin 10 25%, and pin 9 50% duty
+// And change Timer 1 (which affects both pin 9 and pin 10) to be at 5kHz: pin 10 25%, and pin 9 50% duty
 
 //FAST LED
 #include <FastLED.h>
@@ -84,7 +84,7 @@ void setup() {
   TCCR1B = 0;
   
   // 2. Set TOP value (ICR1) for 15.625 kHz
-  ICR1 = 1023; 
+  ICR1 = 3199; 
 
   // 3. Set Timer 1 Control Register B (TCCR1B)
   //    - Mode 14: Fast PWM (WGM13, WGM12)
@@ -99,10 +99,10 @@ void setup() {
 
   // 5. Set Duty Cycles
   // Pin 9 Duty Cycle (50%): 1023 * 0.5 = 256
-  OCR1A = 512; 
+  OCR1A = 1600; 
   
   // Pin 10 Duty Cycle (25%): 1023 * 0.25 = 128
-  OCR1B = 256; // <-- **This value is changed for 25% duty cycle**
+  OCR1B = 800; // <-- **This value is changed for 25% duty cycle**
 
   // analogWrite(PWMfan,64); // 490Hz, 25% duty PWM
 
