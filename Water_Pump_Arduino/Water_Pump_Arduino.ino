@@ -1,7 +1,7 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 4.5.0.0
-// Move Motor PWM to pin 11 and Fan PWM to pin 10
-// And change Timer 1 (which affects both pin 9 and pin 10) to be at 5kHz: pin 10 25%, and pin 9 50% duty
+// VERSION 5.0.0.0
+// No more flowmeter
+// Add function to select duty cycle of Fan PWM pin 10
 
 //FAST LED
 #include <FastLED.h>
@@ -24,7 +24,9 @@ DallasTemperature sensor_out(&oneWire_out);
 String data;
 char dl;
 String dutystring;
+String fandutystring;
 int pwmduty = 0;  // Initial Duty Cycle
+int fanduty = 0;
 const int PWMpin = 11;  // Arduino pin 10 used for PWM out
 //const int PWMfan = 10; // for Fan PWM
 const int flowPin = 2; // Arduino pin 2 used for sensing Flow Meter
@@ -100,10 +102,10 @@ void setup() {
   // 5. Set Duty Cycles
   // Pin 9 Duty Cycle (50%): 1023 * 0.5 = 256
   OCR1A = 1600; 
-  
+
   // Pin 10 Duty Cycle (25%): 1023 * 0.25 = 128
   OCR1B = 800; // <-- **This value is changed for 25% duty cycle**
-
+  
   // analogWrite(PWMfan,64); // 490Hz, 25% duty PWM
 
 }
@@ -132,7 +134,47 @@ void loop() {
       case 'R': {            // for PWM Duty cycle from the Track Bar
         dutystring = data.substring(1);
         pwmduty = dutystring.toInt();
-        analogWrite(PWMpin,pwmduty); // Change the duty for the PWM on pin 10, value is between 0 to 255
+        analogWrite(PWMpin,pwmduty); // Change the duty for the PWM on pin 11, value is between 0 to 255
+      }
+      break;
+
+      case 'F': {            // for Fan Duty cycle from the Track Bar
+        fandutystring = data.substring(1);
+        fanduty = fandutystring.toInt();
+
+        switch (fanduty){
+          case 0: {
+            // OCR1B = 0; // <-- **This value is changed for 0% duty cycle**
+            // Disable PWM on Pin 10 (OC1B): Set COM1B[1:0] to 00
+            TCCR1A &= ~((1 << COM1B1) | (1 << COM1B0));
+            pinMode(10, OUTPUT);
+            digitalWrite(10, LOW);
+          }
+          break;
+
+          case 25: {
+            TCCR1A &= ~((1 << COM1B1) | (1 << COM1B0));
+            TCCR1A |= (1 << COM1B1);
+            OCR1B = 800; // <-- **This value is changed for 25% duty cycle**
+          }
+          break;
+
+          case 50: {
+            TCCR1A &= ~((1 << COM1B1) | (1 << COM1B0));
+            TCCR1A |= (1 << COM1B1);
+            OCR1B = 1600; // <-- **This value is changed for 50% duty cycle**
+          }
+          break;
+
+          case 100: {
+            // Disable PWM on Pin 10 (OC1B): Set COM1B[1:0] to 00
+            TCCR1A &= ~((1 << COM1B1) | (1 << COM1B0));
+            pinMode(10, OUTPUT);
+            digitalWrite(10, HIGH);
+          }
+          break;
+        }
+        
       }
       break;
     }
