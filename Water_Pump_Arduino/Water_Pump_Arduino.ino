@@ -1,7 +1,6 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 5.0.0.0
-// No more flowmeter
-// Add function to select duty cycle of Fan PWM pin 10
+// VERSION 6.0.0.0
+// Add "LED DEMO MODE" where running rainbow will be shown instead of the temperature color (control from GUI)
 
 //FAST LED
 #include <FastLED.h>
@@ -25,8 +24,10 @@ String data;
 char dl;
 String dutystring;
 String fandutystring;
+String leddemomodestring;
 int pwmduty = 0;  // Initial Duty Cycle
 int fanduty = 0;
+int leddemomode = 0;
 const int PWMpin = 11;  // Arduino pin 10 used for PWM out
 //const int PWMfan = 10; // for Fan PWM
 const int flowPin = 2; // Arduino pin 2 used for sensing Flow Meter
@@ -131,6 +132,12 @@ void loop() {
       }
       break;
 
+      case 'L': {            // for PWM Duty cycle from the Track Bar
+        leddemomodestring = data.substring(1);
+        leddemomode = leddemomodestring.toInt();
+      }
+      break;
+
       case 'R': {            // for PWM Duty cycle from the Track Bar
         dutystring = data.substring(1);
         pwmduty = dutystring.toInt();
@@ -186,7 +193,7 @@ void loop() {
   ///////////// FLOW METER & EVK SOUT COUNTER //////////////////
 
   // Attach the interrupt to the pin pulsePin, RISING edge
-  attachInterrupt(digitalPinToInterrupt(flowPin), countFlowPulse, RISING);
+  //attachInterrupt(digitalPinToInterrupt(flowPin), countFlowPulse, RISING);
   attachInterrupt(digitalPinToInterrupt(soutPin), countSOUTPulse, RISING);
   // Start a 1-second timer
   unsigned long startTime = millis();
@@ -194,11 +201,15 @@ void loop() {
     // Wait for 1 second (or use millis() for non-blocking timing)
   }
   // Disable interrupts
-  detachInterrupt(digitalPinToInterrupt(flowPin));
+  
+  //detachInterrupt(digitalPinToInterrupt(flowPin));
   detachInterrupt(digitalPinToInterrupt(soutPin));
 
   //Serial.println(flowCount);
   //Serial.println(soutCount);
+
+  // Fix the flowcount to ZERO as we are disabling this feature. Also above have commented out the attach/deatach for flowcount.
+  flowCount = 0;
 
   //make flowCountThreshold be dependent on the counted flowCount
   if(flowCount < 11)
@@ -352,37 +363,73 @@ void loop() {
     fastled_cycle = 0;
   }
 
-  for (int i = 0; i < NUM_LEDS; i++) {
-    switch (fastled_cycle){
-      case 0:
-      leds[i] = CRGB(255,0,0); // Set the LED to red
+
+  //leddemomode = 1;
+  
+  FastLED.setBrightness(128);
+  if(leddemomode == 0){
+    FastLED.clear();
+    FastLED.show();
+    for (int i = 0; i < NUM_LEDS; i++) {
+      switch (fastled_cycle){
+        case 0:
+        leds[i] = CRGB(255,0,0); // Set the LED to red
+        FastLED.show(); 
+        break;
+      case 1:
+        leds[i] = CRGB(236,88,0); // Set the LED to dark orange
+        FastLED.show(); 
       break;
-    case 1:
-      leds[i] = CRGB(236,88,0); // Set the LED to dark orange
-    break;
-    case 2:
-      leds[i] = CRGB(255, 172, 28); // Set the LED to orange
-    break;
-    case 3:
-      leds[i] = CRGB(255,255,0); // Set the LED to yellow
-    break;
-    case 4:
-      leds[i] = CRGB(0,255,0); // Set the LED to light green
-    break;
-    case 5:
-      leds[i] = CRGB(0,50,0); // Set the LED to green
-    break;
-    case 6:
-      leds[i] = CRGB(0,128,255); // Set the LED to light blue
-    break;
-    case 7:
-      leds[i] = CRGB(0,0,255); // Set the LED to blue
-    break;
+      case 2:
+        leds[i] = CRGB(255, 172, 28); // Set the LED to orange
+        FastLED.show(); 
+      break;
+      case 3:
+        leds[i] = CRGB(255,255,0); // Set the LED to yellow
+        FastLED.show(); 
+      break;
+      case 4:
+        leds[i] = CRGB(0,255,0); // Set the LED to light green
+        FastLED.show(); 
+      break;
+      case 5:
+        leds[i] = CRGB(0,50,0); // Set the LED to green
+        FastLED.show(); 
+      break;
+      case 6:
+        leds[i] = CRGB(0,128,255); // Set the LED to light blue
+        FastLED.show(); 
+      break;
+      case 7:
+        leds[i] = CRGB(0,0,255); // Set the LED to blue
+        FastLED.show(); 
+      break;
+      }
+      
+      //FastLED.show();      // Send the data to the strip
+      //leds[i] = CRGB::Black; // Turn the LED off for the next iteration
+      delay(1);           // Wait a short amount of time
     }
+  }
+
+  else if(leddemomode == 1){
     FastLED.setBrightness(128);
-    FastLED.show();      // Send the data to the strip
-    //leds[i] = CRGB::Black; // Turn the LED off for the next iteration
-    delay(1);           // Wait a short amount of time
+    for(int i = 0; i<255; i++){
+      fill_rainbow(leds, NUM_LEDS, i, 1);
+      FastLED.show();
+      //delay(10);
+      //fill_solid(leds, NUM_LEDS, CRGB::Black);
+      //FastLED.show();
+      //delay(100);
+    }
+    for(int i = 255; i>0; i--){
+      fill_rainbow(leds, NUM_LEDS, i, 1);
+      FastLED.show();
+      //delay(10);
+      //fill_solid(leds, NUM_LEDS, CRGB::Black);
+      //FastLED.show();
+      //delay(100);
+    }
   }
 
 //Serial.print("First time");
