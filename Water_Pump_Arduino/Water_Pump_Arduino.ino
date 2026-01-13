@@ -1,6 +1,6 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 6.0.0.0
-// Add "LED DEMO MODE" where running rainbow will be shown instead of the temperature color (control from GUI)
+// VERSION 6.1.0.0
+// Modified the receive of string command from GUI to be more robust (Serial.readStringUntil('Y'))
 
 //FAST LED
 #include <FastLED.h>
@@ -115,7 +115,7 @@ void loop() {
 
   // Section for receiving command from GUI
   if(Serial.available()){
-    data = Serial.readString();
+    data = Serial.readStringUntil('Y');
     dl = data.charAt(0);
     switch(dl){
       case 'O': {
@@ -330,7 +330,7 @@ void loop() {
  ///////////// Send Serial message out for GUI to decode //////////////////
 
   //Compose serial message to send out (GUI will decode this later on)
-  String message = String(flowCount*multfactor) + "A" + String(tempC1,1) + "B" + String(tempC2,1) + "C" + String(finalSoutCount) + "D" + "\n";
+  String message = String(flowCount*multfactor) + "A" + String(tempC1,1) + "B" + String(tempC2,1) + "C" + String(finalSoutCount) + "D" + String(data) + "E" + "\n";
   Serial.print(message);
 
   //reset the counters for flow meter and Sout
