@@ -1,7 +1,6 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 7.0.0.0
-// Updated the serial read to become "non-blocking" to solve the missing characters
-// Update Baud rate to 115200
+// VERSION 8.0.0.0
+// Change the code so temp sensor read and LED animation only occurs every 10 seconds
 
 //FAST LED
 #include <FastLED.h>
@@ -49,6 +48,21 @@ volatile int soutCount = 0;
 int finalSoutCount = 0;
 int flowCountThreshold = 3;
 
+unsigned long currentTime = 0;
+unsigned long lastTimeRun = 0;
+int blockingInterval = 10000; //time in between when temp sensor and LED animation runs
+
+unsigned long loopStartTime = 0;
+unsigned long loopStopTime = 0;
+unsigned long soutStartTime = 0;
+unsigned long soutStopTime = 0;
+unsigned long checkStartTime = 0;
+unsigned long checkStopTime = 0;
+bool printtimes = false;
+
+float tempC1 = 0;
+float tempC2 = 0;
+
 //int tempC1out = 0;
 //int tempC2out = 0;
 
@@ -59,6 +73,31 @@ void countFlowPulse() {
 
 void countSOUTPulse() {
   soutCount++;
+}
+
+void getTemps(){
+  sensor_in.requestTemperatures();
+  tempC1 = sensor_in.getTempCByIndex(0); // Inlet Temp in Celcius
+  // Limit the tempC1 to avoid error for GUI progressbar
+  if (tempC1 < 0)
+  {
+    tempC1 = 0;
+  }
+  else if (tempC1 > 200)
+  {
+    tempC1 = 200;
+  }
+  sensor_out.requestTemperatures();
+  tempC2 = sensor_out.getTempCByIndex(0); // Outlet Temp in Ceclius
+  // Limit the tempC2 to avoid error for GUI progressbar
+  if (tempC2 < 0)
+  {
+    tempC2 = 0;
+  }
+  else if (tempC2 > 200)
+  {
+    tempC2 = 200;
+  }
 }
 
 void setup() {
@@ -77,6 +116,7 @@ void setup() {
   //temperature sensor
   sensor_in.begin();
   sensor_out.begin();
+  getTemps();
 
   FastLED.addLeds<WS2815, DATA_PIN, GRB>(leds, NUM_LEDS);
 
@@ -117,7 +157,7 @@ void setup() {
 }
 
 void loop() {
-
+loopStartTime= millis();
   // Section for receiving command from GUI
 
   // 1. Read available characters into the buffer
@@ -212,6 +252,8 @@ void loop() {
 
   }
 
+  soutStartTime = millis();
+  
   // Section for measuring data from sensors (2x DS12B80 Temp Sensor, 1x Flow Meter and 1x Motor RPM from BD16851)
 
   ///////////// FLOW METER & EVK SOUT COUNTER //////////////////
@@ -224,13 +266,13 @@ void loop() {
   while (millis() - startTime < samplingtime) {
     // Wait for 1 second (or use millis() for non-blocking timing)
   }
+  soutStopTime = millis();
+  if(printtimes){
+    Serial.println("SOUT TIME1:");Serial.println((soutStopTime - soutStartTime));
+  }
   // Disable interrupts
-  
   //detachInterrupt(digitalPinToInterrupt(flowPin));
   detachInterrupt(digitalPinToInterrupt(soutPin));
-
-  //Serial.println(flowCount);
-  //Serial.println(soutCount);
 
   // Fix the flowcount to ZERO as we are disabling this feature. Also above have commented out the attach/deatach for flowcount.
   flowCount = 0;
@@ -299,6 +341,11 @@ void loop() {
       //Serial.println("Invalid pulse durations detected.");
     }
 
+    soutStopTime = millis();
+    if(printtimes){
+    Serial.println("SOUT TIME2:");Serial.println((soutStopTime - soutStartTime));
+  }
+
     // If the Sout frequency drops below 10Hz, then use the soutCount to send a number between 1-9 to GUI to indicate type of DIAG error (page 46 datasheet)
     if((soutCount*multfactor) < 10)
     {
@@ -322,37 +369,118 @@ void loop() {
     }
   }
 
-  ///////////// DS18D20 2x TEMP SENSOR //////////////////
+  soutStopTime = millis();
+  if(printtimes){
+    Serial.println("SOUT TIME:");Serial.println((soutStopTime - soutStartTime));
+  }
 
-  sensor_in.requestTemperatures();
-  float tempC1 = sensor_in.getTempCByIndex(0); // Inlet Temp in Celcius
-  // Limit the tempC1 to avoid error for GUI progressbar
-  if (tempC1 < 0)
+  //////////// This section is BLOCKING ///////////////
+  /////// Do this section every blockingInterval seconds ////////////
+  currentTime = millis();
+  if(currentTime - lastTimeRun >=blockingInterval )
   {
-    tempC1 = 0;
-  }
-  else if (tempC1 > 200)
-  {
-    tempC1 = 200;
-  }
-  sensor_out.requestTemperatures();
-  float tempC2 = sensor_out.getTempCByIndex(0); // Outlet Temp in Ceclius
-  // Limit the tempC2 to avoid error for GUI progressbar
-  if (tempC2 < 0)
-  {
-    tempC2 = 0;
-  }
-  else if (tempC2 > 200)
-  {
-    tempC2 = 200;
-  }
-  //int tempC1out = tempC1;
-  //int tempC2out = tempC2;
-  //Serial.println("T");
-  //Serial.println(tempC1); //C
 
- ///////////// Send Serial message out for GUI to decode //////////////////
+    //Serial.println("CHECKING");
+    getTemps();
 
+    //LED color vs outlet temp
+    if(tempC2 <= 24){
+      fastled_cycle = 7;
+    }
+    else if(tempC2 > 24 && tempC2 <= 28){
+      fastled_cycle = 6;
+    }
+    else if(tempC2 > 28 && tempC2 <= 32){
+      fastled_cycle = 5;
+    }
+    else if(tempC2 > 32 && tempC2 <= 36){
+      fastled_cycle = 4;
+    }
+    else if(tempC2 > 36 && tempC2 <= 40){
+      fastled_cycle = 3;
+    }
+    else if(tempC2 > 40 && tempC2 <= 44){
+      fastled_cycle = 2;
+    }
+    else if(tempC2 > 44 && tempC2 <= 48){
+      fastled_cycle = 1;
+    }
+    else if(tempC2 > 48){
+      fastled_cycle = 0;
+    }
+
+    //leddemomode = 1;
+    
+    FastLED.setBrightness(128);
+    if(leddemomode == 0){
+      FastLED.clear();
+      FastLED.show();
+      for (int i = 0; i < NUM_LEDS; i++) {
+        switch (fastled_cycle){
+          case 0:
+          leds[i] = CRGB(255,0,0); // Set the LED to red
+          FastLED.show(); 
+          break;
+        case 1:
+          leds[i] = CRGB(236,88,0); // Set the LED to dark orange
+          FastLED.show(); 
+        break;
+        case 2:
+          leds[i] = CRGB(255, 172, 28); // Set the LED to orange
+          FastLED.show(); 
+        break;
+        case 3:
+          leds[i] = CRGB(255,255,0); // Set the LED to yellow
+          FastLED.show(); 
+        break;
+        case 4:
+          leds[i] = CRGB(0,255,0); // Set the LED to light green
+          FastLED.show(); 
+        break;
+        case 5:
+          leds[i] = CRGB(0,50,0); // Set the LED to green
+          FastLED.show(); 
+        break;
+        case 6:
+          leds[i] = CRGB(0,128,255); // Set the LED to light blue
+          FastLED.show(); 
+        break;
+        case 7:
+          leds[i] = CRGB(0,0,255); // Set the LED to blue
+          FastLED.show(); 
+        break;
+        }
+        
+        //FastLED.show();      // Send the data to the strip
+        //leds[i] = CRGB::Black; // Turn the LED off for the next iteration
+        //delay(1);           // Wait a short amount of time
+      }
+    }
+
+    else if(leddemomode == 1){
+      FastLED.setBrightness(128);
+      for(int i = 0; i<255; i++){
+        fill_rainbow(leds, NUM_LEDS, i, 1);
+        FastLED.show();
+        //delay(10);
+        //fill_solid(leds, NUM_LEDS, CRGB::Black);
+        //FastLED.show();
+        //delay(100);
+      }
+      for(int i = 255; i>0; i--){
+        fill_rainbow(leds, NUM_LEDS, i, 1);
+        FastLED.show();
+        //delay(10);
+        //fill_solid(leds, NUM_LEDS, CRGB::Black);
+        //FastLED.show();
+        //delay(100);
+      }
+    }
+
+    lastTimeRun = currentTime;
+  }
+
+  ///////////// Send Serial message out for GUI to decode //////////////////
   //Compose serial message to send out (GUI will decode this later on)
   String message = String(flowCount*multfactor) + "A" + String(tempC1,1) + "B" + String(tempC2,1) + "C" + String(finalSoutCount) + "D" + String(data) + "\n";
   Serial.print(message);
@@ -361,111 +489,9 @@ void loop() {
   flowCount = 0;
   soutCount = 0;
 
-  //LED color vs outlet temp
-  if(tempC2 <= 24){
-    fastled_cycle = 7;
+  loopStopTime= millis();
+  if(printtimes){
+    Serial.println("LOOP TIME:");Serial.println((loopStopTime - loopStartTime));
   }
-  else if(tempC2 > 24 && tempC2 <= 28){
-    fastled_cycle = 6;
-  }
-  else if(tempC2 > 28 && tempC2 <= 32){
-    fastled_cycle = 5;
-  }
-  else if(tempC2 > 32 && tempC2 <= 36){
-    fastled_cycle = 4;
-  }
-  else if(tempC2 > 36 && tempC2 <= 40){
-    fastled_cycle = 3;
-  }
-  else if(tempC2 > 40 && tempC2 <= 44){
-    fastled_cycle = 2;
-  }
-  else if(tempC2 > 44 && tempC2 <= 48){
-    fastled_cycle = 1;
-  }
-  else if(tempC2 > 48){
-    fastled_cycle = 0;
-  }
-
-
-  //leddemomode = 1;
-  
-  FastLED.setBrightness(128);
-  if(leddemomode == 0){
-    FastLED.clear();
-    FastLED.show();
-    for (int i = 0; i < NUM_LEDS; i++) {
-      switch (fastled_cycle){
-        case 0:
-        leds[i] = CRGB(255,0,0); // Set the LED to red
-        FastLED.show(); 
-        break;
-      case 1:
-        leds[i] = CRGB(236,88,0); // Set the LED to dark orange
-        FastLED.show(); 
-      break;
-      case 2:
-        leds[i] = CRGB(255, 172, 28); // Set the LED to orange
-        FastLED.show(); 
-      break;
-      case 3:
-        leds[i] = CRGB(255,255,0); // Set the LED to yellow
-        FastLED.show(); 
-      break;
-      case 4:
-        leds[i] = CRGB(0,255,0); // Set the LED to light green
-        FastLED.show(); 
-      break;
-      case 5:
-        leds[i] = CRGB(0,50,0); // Set the LED to green
-        FastLED.show(); 
-      break;
-      case 6:
-        leds[i] = CRGB(0,128,255); // Set the LED to light blue
-        FastLED.show(); 
-      break;
-      case 7:
-        leds[i] = CRGB(0,0,255); // Set the LED to blue
-        FastLED.show(); 
-      break;
-      }
-      
-      //FastLED.show();      // Send the data to the strip
-      //leds[i] = CRGB::Black; // Turn the LED off for the next iteration
-      //delay(1);           // Wait a short amount of time
-    }
-  }
-
-  else if(leddemomode == 1){
-    FastLED.setBrightness(128);
-    for(int i = 0; i<255; i++){
-      fill_rainbow(leds, NUM_LEDS, i, 1);
-      FastLED.show();
-      //delay(10);
-      //fill_solid(leds, NUM_LEDS, CRGB::Black);
-      //FastLED.show();
-      //delay(100);
-    }
-    for(int i = 255; i>0; i--){
-      fill_rainbow(leds, NUM_LEDS, i, 1);
-      FastLED.show();
-      //delay(10);
-      //fill_solid(leds, NUM_LEDS, CRGB::Black);
-      //FastLED.show();
-      //delay(100);
-    }
-  }
-
-//Serial.print("First time");
-//Serial.println(fastled_cycle);
-// if(fastled_cycle < 7){
-//   fastled_cycle++;
-// }
-// else{
-//   fastled_cycle = 0;
-// }
-//Serial.print("Second time");
-//Serial.println(fastled_cycle);
-  
 
 }
