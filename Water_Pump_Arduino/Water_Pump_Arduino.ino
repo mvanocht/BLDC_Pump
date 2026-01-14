@@ -1,6 +1,7 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 6.1.0.0
-// Modified the receive of string command from GUI to be more robust (Serial.readStringUntil('Y'))
+// VERSION 7.0.0.0
+// Updated the serial read to become "non-blocking" to solve the missing characters
+// Update Baud rate to 115200
 
 //FAST LED
 #include <FastLED.h>
@@ -20,6 +21,8 @@ DallasTemperature sensor_in(&oneWire_in);
 DallasTemperature sensor_out(&oneWire_out);
 
 //Define variables
+String inputBuffer = ""; 
+bool commandReady = false;
 String data;
 char dl;
 String dutystring;
@@ -60,7 +63,9 @@ void countSOUTPulse() {
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);   // start Serial Port with Baud Rate 9600
+  Serial.begin(115200);
+  //Serial.begin(9600);   // start Serial Port with Baud Rate 9600
+  //Serial.setTimeout(2000);
 
   pinMode(13,OUTPUT);   // LED on pin 13
 
@@ -114,8 +119,23 @@ void setup() {
 void loop() {
 
   // Section for receiving command from GUI
-  if(Serial.available()){
-    data = Serial.readStringUntil('Y');
+
+  // 1. Read available characters into the buffer
+  while (Serial.available() > 0) {
+      char inChar = (char)Serial.read();
+      if (inChar == 'Y') {
+          commandReady = true; // Terminator found
+          break; 
+      } else {
+          inputBuffer += inChar; // Accumulate characters
+      }
+  }
+
+  // 2. Process the command only when 'Y' has been received
+  //if(Serial.available()){
+    //data = Serial.readStringUntil('Y');
+  if (commandReady) {
+    data = inputBuffer;
     dl = data.charAt(0);
     switch(dl){
       case 'O': {
@@ -185,6 +205,10 @@ void loop() {
       }
       break;
     }
+
+    // 3. Clear the buffer for the next message
+    inputBuffer = "";
+    commandReady = false;
 
   }
 
@@ -330,7 +354,7 @@ void loop() {
  ///////////// Send Serial message out for GUI to decode //////////////////
 
   //Compose serial message to send out (GUI will decode this later on)
-  String message = String(flowCount*multfactor) + "A" + String(tempC1,1) + "B" + String(tempC2,1) + "C" + String(finalSoutCount) + "D" + String(data) + "E" + "\n";
+  String message = String(flowCount*multfactor) + "A" + String(tempC1,1) + "B" + String(tempC2,1) + "C" + String(finalSoutCount) + "D" + String(data) + "\n";
   Serial.print(message);
 
   //reset the counters for flow meter and Sout
@@ -408,7 +432,7 @@ void loop() {
       
       //FastLED.show();      // Send the data to the strip
       //leds[i] = CRGB::Black; // Turn the LED off for the next iteration
-      delay(1);           // Wait a short amount of time
+      //delay(1);           // Wait a short amount of time
     }
   }
 
