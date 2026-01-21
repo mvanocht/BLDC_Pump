@@ -1,8 +1,10 @@
 // ROHM SEMICONDUCTOR USA LLC
-// VERSION 8.0.0.0
-// Change the code so temp sensor read and LED animation only occurs every 10 seconds
+// VERSION 9.0.0.0
+// Update FastLed to allow interrupts
 
 //FAST LED
+#define FASTLED_ALLOW_INTERRUPTS 1
+#define FASTLED_INTERRUPT_RETRY_COUNT 0
 #include <FastLED.h>
 #define NUM_LEDS 144
 #define DATA_PIN 6
@@ -30,6 +32,8 @@ String leddemomodestring;
 int pwmduty = 0;  // Initial Duty Cycle
 int fanduty = 0;
 int leddemomode = 0;
+int rainbowHue = 0;
+
 const int PWMpin = 11;  // Arduino pin 10 used for PWM out
 //const int PWMfan = 10; // for Fan PWM
 const int flowPin = 2; // Arduino pin 2 used for sensing Flow Meter
@@ -50,7 +54,9 @@ int flowCountThreshold = 3;
 
 unsigned long currentTime = 0;
 unsigned long lastTimeRun = 0;
-int blockingInterval = 10000; //time in between when temp sensor and LED animation runs
+int blockingInterval = 5; //time in between when temp sensor and LED animation runs
+
+bool flipflop = true;
 
 unsigned long loopStartTime = 0;
 unsigned long loopStopTime = 0;
@@ -156,10 +162,7 @@ void setup() {
 
 }
 
-void loop() {
-loopStartTime= millis();
-  // Section for receiving command from GUI
-
+void checkSerial(){
   // 1. Read available characters into the buffer
   while (Serial.available() > 0) {
       char inChar = (char)Serial.read();
@@ -170,6 +173,13 @@ loopStartTime= millis();
           inputBuffer += inChar; // Accumulate characters
       }
   }
+}
+
+void loop() {
+loopStartTime= millis();
+  // Section for receiving command from GUI
+
+  checkSerial();
 
   // 2. Process the command only when 'Y' has been received
   //if(Serial.available()){
@@ -265,6 +275,7 @@ loopStartTime= millis();
   unsigned long startTime = millis();
   while (millis() - startTime < samplingtime) {
     // Wait for 1 second (or use millis() for non-blocking timing)
+    checkSerial();
   }
   soutStopTime = millis();
   if(printtimes){
@@ -375,7 +386,7 @@ loopStartTime= millis();
   }
 
   //////////// This section is BLOCKING ///////////////
-  /////// Do this section every blockingInterval seconds ////////////
+  /////// Do this section only if inputBuffer is == "" ////////////
   currentTime = millis();
   if(currentTime - lastTimeRun >=blockingInterval )
   {
@@ -412,10 +423,13 @@ loopStartTime= millis();
     //leddemomode = 1;
     
     FastLED.setBrightness(128);
+
+    // To kill LED animation start commenting here
     if(leddemomode == 0){
       FastLED.clear();
       FastLED.show();
       for (int i = 0; i < NUM_LEDS; i++) {
+        checkSerial();
         switch (fastled_cycle){
           case 0:
           leds[i] = CRGB(255,0,0); // Set the LED to red
@@ -459,25 +473,32 @@ loopStartTime= millis();
 
     else if(leddemomode == 1){
       FastLED.setBrightness(128);
-      for(int i = 0; i<255; i++){
-        fill_rainbow(leds, NUM_LEDS, i, 1);
-        FastLED.show();
-        //delay(10);
-        //fill_solid(leds, NUM_LEDS, CRGB::Black);
-        //FastLED.show();
-        //delay(100);
+      
+      // fill_rainbow(leds, NUM_LEDS, rainbowHue, 1);
+      // rainbowHue = rainbowHue + 20;
+      // FastLED.show();
+      //Serial.println(rainbowHue);
+
+      if(flipflop){
+        for(int i = 0; i<255; i++){
+          checkSerial();
+          fill_rainbow(leds, NUM_LEDS, i, 1);
+          FastLED.show();
+        }
       }
-      for(int i = 255; i>0; i--){
-        fill_rainbow(leds, NUM_LEDS, i, 1);
-        FastLED.show();
-        //delay(10);
-        //fill_solid(leds, NUM_LEDS, CRGB::Black);
-        //FastLED.show();
-        //delay(100);
+      else{
+        for(int i = 255; i>0; i--){
+          checkSerial();
+          fill_rainbow(leds, NUM_LEDS, i, 1);
+          FastLED.show();
+        }
       }
+
+      flipflop = !flipflop;
     }
 
     lastTimeRun = currentTime;
+    // To kill LED animation stopcommenting here
   }
 
   ///////////// Send Serial message out for GUI to decode //////////////////
